@@ -59,7 +59,7 @@ def computeLog2Ratio(Aratio, Bratio):
 		log2ratio = str(math.log2(Aratio/Bratio))
 	return log2ratio
 
-def runAnalysis(matrix, groupA, groupB, output):
+def runAnalysis(matrix, groupA, groupB, output, qvalue):
 	try: assert(os.path.isfile(matrix) and os.path.isfile(groupA) and os.path.isfile(groupB))
 	except:
 		sys.stderr.write("Unable to verify one of the input files is actually an existant file within reach. Exiting now ...\n")
@@ -149,7 +149,8 @@ def runAnalysis(matrix, groupA, groupB, output):
 
 	adj_pvalues = []
 	if len(pvalues) > 0:
-		adj_pvalues = q_adjust(pvalues)
+		if qvalue: adj_pvalues = q_adjust(pvalues)
+		else: adj_pvalues = p_adjust_bh(pvalues)
 
 	outf = open(output, 'w')
 	outf.write('\t'.join(['#feature', 'rawPvalue', 'Q-value', 'NZ-Median-A', 'NZ-Median-B', 'Proportion-A', 'Proportion-B'])  + "\n")
@@ -159,7 +160,6 @@ def runAnalysis(matrix, groupA, groupB, output):
 		adj_pvalue = adj_pvalues[i]
 		printlist = [f, str(pvalue), str(adj_pvalue)]
 		printlist += [str(x) for x in feature_data[f]]
-		#if adj_pvalue < 0.05 and ((feature_data[f][-2] >= 0.8 and feature_data[f][-1] <= 0.2) or (feature_data[f][-2] <= 0.2 and feature_data[f][-1] >= 0.8)):
 		outf.write('\t'.join(printlist) + '\n')
 	outf.close()
 
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 	parser.add_argument('-a', '--groupA', type=str, help='Provide file to strainlist for Group A.', required=True)
 	parser.add_argument('-b', '--groupB', type=str, help='Provide file to strainlist for Group B.', required=True)
 	parser.add_argument('-o', '--output', type=str, help='Provide output file name.', required=True)
-	parser.add_argument('-
+	parser.add_argument('-q', '--qvalue', action='store_true', help='Perform q-value FDR adjustment of p-values instead of Benjamini-Hochberg FDR adjustment. Please make sure R with the qvalue library is available in path.', required=False, default=False)
 
 	args = parser.parse_args()
-	runAnalysis(args.matrix, args.groupA, args.groupB, args.output)
+	runAnalysis(args.matrix, args.groupA, args.groupB, args.output, args.qvalue)
