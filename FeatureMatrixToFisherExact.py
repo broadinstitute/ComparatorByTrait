@@ -17,7 +17,9 @@ except:
 
 RSCRIPT_PATH=os.path.dirname(os.path.realpath(__file__)) + '/qvalue_computation.R'
 def p_adjust_bh(p):
-	"""Benjamini-Hochberg p-value correction for multiple hypothesis testing."""
+	"""
+	Benjamini-Hochberg p-value correction for multiple hypothesis testing.
+	"""
 	p = np.asfarray(p)
 	by_descend = p.argsort()[::-1]
 	by_orig = by_descend.argsort()
@@ -26,6 +28,9 @@ def p_adjust_bh(p):
 	return q[by_orig]
 
 def q_adjust(p):
+	"""
+	Compute q-values from list of p-values using FDR correction method by Storey et al 2001.
+	"""
 	tmp_pvalues = "tmp.pvalues." + uuid.uuid4().hex
 	tmp_qvalues = "tmp.qvalues." + uuid.uuid4().hex
 	tmp_pvalues_handle = open(tmp_pvalues, 'w')
@@ -119,16 +124,6 @@ def runAnalysis(matrix, groupA, groupB, output):
 					if total_feats[samp] != 0:
 						wBsum += float(val)/total_feats[samp]
 
-			# some stats Brian Haas includes his matrix_to_Fisher_TwoTail_Test.pl program
-			# weighted count = average ratio * average counts
-			# log2 ratio between weighted ratios
-			#print(len(groupAstrains))
-			#print(len(groupBstrains))
-			weightedAcount = (wAsum/len(groupAstrains)) * (float(groupAtotalsum)/len(groupAstrains))
-			weightedBcount = (wBsum/len(groupBstrains)) * (float(groupBtotalsum)/len(groupBstrains))
-			pseudocount = 0.1
-			log2Ratio = computeLog2Ratio((weightedAcount + pseudocount)/groupAtotalsum, (weightedBcount + pseudocount)/groupBtotalsum)
-
 			if groupAsum > 0 or groupBsum > 0:
 				groupAnzcounts = [x for x in groupAcounts if x > 0]; groupBnzcounts = [x for x in groupBcounts if x > 0]
 				A_nz_median = 0.0; B_nz_median =0.0; A_nz_Q1 = 0.0; B_nz_Q1 = 0.0
@@ -141,16 +136,13 @@ def runAnalysis(matrix, groupA, groupB, output):
 				A_proportion = float(len([x for x in groupAcounts if x >= A_nz_Q1 and x > 0]))/len(groupAcounts)
 				B_proportion = float(len([x for x in groupBcounts if x >= B_nz_Q1 and x > 0]))/len(groupBcounts)
 				if True:
-				#if ((A_proportion >= 0.8 and B_proportion <= 0.2) or (A_proportion <= 0.2 and B_proportion >= 0.8)):
 					groupAcompsum = groupAtotalsum - groupAsum
 					groupBcompsum = groupBtotalsum - groupBsum
 					confusion_matrix = [[groupAsum, groupBsum], [groupAcompsum, groupBcompsum]]
 					oddsratio, pvalue = stats.fisher_exact(confusion_matrix)
-					#logpval = -(math.log(pvalue, 10))
 					rankingStat = abs(A_proportion - B_proportion)*100.0
 					if A_proportion < B_proportion: rankingStat = -rankingStat
 					printlist = [A_nz_median, B_nz_median, A_proportion, B_proportion]
-					#printlist = [feature] + groupAcounts + groupBcounts + [str(weightedAcount), str(weightedBcount), log2Ratio, '[' + ' '.join([str(x) for x in [groupAsum, groupBsum, groupAcompsum, groupBcompsum]]) + ']']
 					feature_data[feature] = printlist
 					features.append(feature)
 					pvalues.append(pvalue)
@@ -159,7 +151,6 @@ def runAnalysis(matrix, groupA, groupB, output):
 	if len(pvalues) > 0:
 		adj_pvalues = q_adjust(pvalues)
 
-	#sys.stdout.write('\t'.join(['#feature'] + groupAheader + groupBheader + ['wA', 'wB', 'log2(wA/wB)', '[nFA, nFB, nOA, nOB]', 'rawPvalue', 'BH-AdjPvalue']) + '\n')
 	outf = open(output, 'w')
 	outf.write('\t'.join(['#feature', 'rawPvalue', 'Q-value', 'NZ-Median-A', 'NZ-Median-B', 'Proportion-A', 'Proportion-B'])  + "\n")
 
@@ -185,16 +176,13 @@ if __name__ == '__main__':
 	#domain IN      OUT
 	
 	The second line has the column names, which should match the first line.
-	
-	NOTE: While I try to mimic the output format of matrix_to_Fisher_TwoTail_Test.pl by Brian Haas, I ultimately decided to perform
-	the Fisher exact tests in a different manner than him. Additionally, I use a Benjamini-Hochberg adjusted pvalue rather
-	than the qvalue from the R package developed by John Storey.
 	""")
 
 	parser.add_argument('-i', '--matrix', type=str, help='Provide the input annotation feature matrix with the appropriate headings.', required=True)
 	parser.add_argument('-a', '--groupA', type=str, help='Provide file to strainlist for Group A.', required=True)
 	parser.add_argument('-b', '--groupB', type=str, help='Provide file to strainlist for Group B.', required=True)
 	parser.add_argument('-o', '--output', type=str, help='Provide output file name.', required=True)
+	parser.add_argument('-
 
 	args = parser.parse_args()
 	runAnalysis(args.matrix, args.groupA, args.groupB, args.output)
