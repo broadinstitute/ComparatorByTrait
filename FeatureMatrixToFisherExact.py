@@ -29,7 +29,7 @@ def p_adjust_bh(p):
 
 def q_adjust(p):
 	"""
-	Compute q-values from list of p-values using FDR correction method by Storey et al 2001.
+	Compute q-values from list of p-values using FDR correction method by Storey and Tibshirani 2003.
 	"""
 	tmp_pvalues = "tmp.pvalues." + uuid.uuid4().hex
 	tmp_qvalues = "tmp.qvalues." + uuid.uuid4().hex
